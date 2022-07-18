@@ -1,16 +1,21 @@
 # cangaroo
-open source can bus analyzer
+An open source can bus analyzer with support for transmit/receive of standard and FD frames and DBC decoding of incoming frames
 
-* Supports [CANable / CANable 2](http://canable.io) SLCAN interfaces on Windows and Linux
-* Supports Candlelight interfaces on Windows
-* Supports Socketcan interfaces on Linux
-* Support [CANblaster](https://github.com/normaldotcom/canblaster), forwards socketCAN traffic over UDP to Cangaroo
-* Initial support for transmit / receive of CANFD packets on [CANable 2.0](http://canable.io/)
+**Supported interfaces:**
+
+* [CANable](http://canable.io) SLCAN interfaces on Windows and Linux
+* [CANable 2](http://canable.io) SLCAN interfaces on Windows and Linux with FD support
+* Candlelight interfaces on Windows
+* Socketcan interfaces on Linux
+* [CANblaster](https://github.com/normaldotcom/canblaster) socketCAN over UDP server with auto-discovery
+
+![demo1](https://user-images.githubusercontent.com/2422337/179544017-0deb66ab-e81d-4e6c-9d99-4059a14921c0.gif)
 
 
 written by Hubert Denkmair <hubert@denkmair.de>
 
 further development by Ethan Zonca <e@ethanzonca.com>
+
 
 
 ## Building on Linux
@@ -37,9 +42,10 @@ further development by Ethan Zonca <e@ethanzonca.com>
 ## Changelog
 
 ### v0.2.4 unreleased
-* Add support for SLCAN interfaces (CANable, CANable 2) including FD
 * Add initial support for CANFD
-* Add filtering of CAN messages
+* Add support for SLCAN interfaces on Windows and Linux (CANable, CANable 2.0) including FD support
+* Add support for [CANblaster](https://github.com/normaldotcom/canblaster) socketCAN over UDP server with auto-discovery
+* Add live filtering of CAN messages in trace view
 
 ### v0.2.1
 * make logging easier
