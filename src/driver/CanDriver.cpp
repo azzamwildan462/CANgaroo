@@ -79,13 +79,13 @@ CanInterfaceId CanDriver::addInterface(CanInterface *intf)
     return intf->getId();
 }
 
-CanInterfaceId CanDriver::deleteInterface(CanInterface *intf)
+void CanDriver::deleteInterface(CanInterface *intf)
 {
     delete intf;
     _interfaces.removeOne(intf);
 }
 
-CanInterfaceId CanDriver::deleteAllInterfaces()
+void CanDriver::deleteAllInterfaces()
 {
     for(CanInterface* interface: _interfaces)
     {

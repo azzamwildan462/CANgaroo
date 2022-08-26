@@ -90,7 +90,7 @@ bool CANBlasterDriver::update() {
                 }
                 else
                 {
-                    fprintf(stderr, "Invalid CANblaster server. Protocol: %s  Version: %d \r\n", rootObj.length(), rootObj["protocol"].toString().toStdString().c_str(), rootObj["version"].toInt());
+                    fprintf(stderr, "Invalid CANblaster server. Protocol: %s  Version: %d \r\n", rootObj["protocol"].toString().toStdString().c_str(), rootObj["version"].toInt());
                 }
             }
         }
@@ -107,10 +107,11 @@ bool CANBlasterDriver::update() {
     fprintf(stderr, "Found %d servers: \r\n", detected_servers.length());
     int interface_cnt = 0;
 
-    for(QString server: detected_servers)
+    QListIterator<QString> iter(detected_servers);
+    while(iter.hasNext())
     {
-        fprintf(stderr, "  - %s\r\n", server.toStdString().c_str());
-        CANBlasterInterface *intf = createOrUpdateInterface(interface_cnt++, server, false);
+        fprintf(stderr, "  - %s\r\n", iter.next().toStdString().c_str());
+        CANBlasterInterface *intf = createOrUpdateInterface(interface_cnt++, iter.next(), false);
     }
 
 
