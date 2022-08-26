@@ -20,7 +20,7 @@ further development by Ethan Zonca <e@ethanzonca.com>
 
 ## Building on Linux
 * to install all required packages in a vanilla ubuntu 16.04:
-  * sudo apt-get install build-essential git qt5-qmake qtbase5-dev libnl-3-dev libnl-route-3-dev
+  * sudo apt-get install build-essential git qt5-qmake qtbase5-dev libnl-3-dev libnl-route-3-dev cmake qt5-default libqt5serialport5 libqt5serialport5-dev libqt5charts5 libqt5charts5-dev
 * build with:
   * qmake -qt=qt5
   * make
