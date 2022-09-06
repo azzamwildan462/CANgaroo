@@ -85,8 +85,6 @@ bool Backend::startMeasurement()
                 intf->applyConfig(*mi);
 
                 log_info(QString("Listening on interface: %1").arg(intf->getName()));
-                intf->open();
-
                 CanListener *listener = new CanListener(0, *this, *intf);
                 listener->startThread();
                 _listeners.append(listener);
@@ -107,9 +105,8 @@ bool Backend::stopMeasurement()
         }
 
         foreach (CanListener *listener, _listeners) {
-            listener->waitFinish();
             log_info(QString("Closing interface: %1").arg(getInterfaceName(listener->getInterfaceId())));
-            listener->getInterface().close();
+            listener->waitFinish();
         }
 
         qDeleteAll(_listeners);

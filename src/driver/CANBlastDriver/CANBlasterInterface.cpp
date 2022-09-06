@@ -41,7 +41,6 @@ CANBlasterInterface::CANBlasterInterface(CANBlasterDriver *driver, int index, QS
   : CanInterface((CanDriver *)driver),
 	_idx(index),
     _isOpen(false),
-    _requestOpen(false),
     _name(name),
     _ts_mode(ts_mode_SIOCSHWTSTAMP),
     _socket(NULL)
@@ -54,7 +53,6 @@ CANBlasterInterface::CANBlasterInterface(CANBlasterDriver *driver, int index, QS
 
     // Record start time
     gettimeofday(&_heartbeat_time,NULL);
-
 }
 
 CANBlasterInterface::~CANBlasterInterface() {
@@ -106,20 +104,7 @@ void CANBlasterInterface::applyConfig(const MeasurementInterface &mi)
     _settings = mi;
 }
 
-bool CANBlasterInterface::updateStatus()
-{
 
-}
-
-bool CANBlasterInterface::readConfig()
-{
-
-}
-
-bool CANBlasterInterface::readConfigFromLink(rtnl_link *link)
-{
-
-}
 
 bool CANBlasterInterface::supportsTimingConfiguration()
 {
@@ -136,8 +121,9 @@ bool CANBlasterInterface::supportsTripleSampling()
     return false;
 }
 
-unsigned CANBlasterInterface::getBitrate() {
-
+unsigned CANBlasterInterface::getBitrate()
+{
+    return 0;
 }
 
 uint32_t CANBlasterInterface::getCapabilities()
@@ -160,20 +146,15 @@ uint32_t CANBlasterInterface::getCapabilities()
 
 bool CANBlasterInterface::updateStatistics()
 {
-    return updateStatus();
+    return false;
 }
 
 uint32_t CANBlasterInterface::getState()
 {
-    /*
-    switch (_status.can_state) {
-        case CAN_STATE_ERROR_ACTIVE: return state_ok;
-        case CAN_STATE_ERROR_WARNING: return state_warning;
-        case CAN_STATE_ERROR_PASSIVE: return state_passive;
-        case CAN_STATE_BUS_OFF: return state_bus_off;
-        case CAN_STATE_STOPPED: return state_stopped;
-        default: return state_unknown;
-    }*/
+    if(_isOpen)
+        return state_ok;
+    else
+        return state_bus_off;
 }
 
 int CANBlasterInterface::getNumRxFrames()
@@ -217,11 +198,31 @@ const char *CANBlasterInterface::cname()
 
 void CANBlasterInterface::open()
 {
-    _requestOpen = true;
+
+    // Start off with a fresh socket
+    if(_socket != NULL)
+    {
+        delete _socket;
+    }
+    _socket = new QUdpSocket();
+
+    if(_socket->bind(QHostAddress::AnyIPv4, 20001))
+    {
+        _isOpen = true;
+    }
+    else
+    {
+        perror("CANBlaster Bind Failed!");
+        _isOpen = false;
+    }
 }
 
 void CANBlasterInterface::close()
 {
+    if(_socket != NULL && _socket->isOpen())
+    {
+        _socket->close();
+    }
     _isOpen = false;
 }
 
@@ -236,27 +237,8 @@ void CANBlasterInterface::sendMessage(const CanMessage &msg) {
 
 bool CANBlasterInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
 {
-
-    // Don't saturate the thread. Read the buffer every 1ms.
+    // Don't saturate the thread
     QThread().usleep(250);
-
-    // Open socket from CanListener thread
-    if(_requestOpen == true)
-    {
-        _requestOpen = false;
-        _socket = new QUdpSocket();
-
-        if(_socket->bind(QHostAddress::AnyIPv4, 20001))
-        {
-            _isOpen = true;
-        }
-        else
-        {
-            perror("CANBlaster Bind Failed!");
-            _isOpen = false;
-        }
-    }
-
 
     // Record start time
     struct timeval now;
@@ -279,7 +261,7 @@ bool CANBlasterInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
 
     // Process all pending datagrams
     // TODO: Could switch to if from while but the caller expects 1 can frame
-    if (_socket->hasPendingDatagrams())
+    if (_isOpen && _socket->hasPendingDatagrams())
     {
         can_frame frame;
         QHostAddress address;

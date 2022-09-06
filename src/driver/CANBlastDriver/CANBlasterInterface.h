@@ -62,8 +62,6 @@ public:
     virtual QList<CanTiming> getAvailableBitrates();
 
     virtual void applyConfig(const MeasurementInterface &mi);
-    virtual bool readConfig();
-    virtual bool readConfigFromLink(struct rtnl_link *link);
 
     bool supportsTimingConfiguration();
     bool supportsCanFD();
@@ -102,7 +100,6 @@ private:
 
     int _idx;
     bool _isOpen;
-    bool _requestOpen;
     QString _name;
 
     MeasurementInterface _settings;
@@ -114,7 +111,6 @@ private:
     struct timeval _heartbeat_time;
     QUdpSocket* _socket;
     const char *cname();
-    bool updateStatus();
 
 };
 
