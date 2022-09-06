@@ -107,11 +107,10 @@ bool CANBlasterDriver::update() {
     fprintf(stderr, "Found %d servers: \r\n", detected_servers.length());
     int interface_cnt = 0;
 
-    QListIterator<QString> iter(detected_servers);
-    while(iter.hasNext())
+    for(QString server: detected_servers)
     {
-        fprintf(stderr, "  - %s\r\n", iter.next().toStdString().c_str());
-        CANBlasterInterface *intf = createOrUpdateInterface(interface_cnt++, iter.next(), false);
+        fprintf(stderr, "  - %s\r\n", server.toStdString().c_str());
+        createOrUpdateInterface(interface_cnt++, server, false);
     }
 
 
