@@ -98,7 +98,6 @@ public:
     virtual int getNumTxErrors();
     virtual int getNumTxDropped();
 
-
     int getIfIndex();
 
 private:
@@ -111,6 +110,7 @@ private:
     int _idx;
     bool _isOpen;
     QSerialPort* _serport;
+    QStringList _msg_queue;
     QMutex _serport_mutex;
     QString _name;
     char _rx_linbuf[SLCAN_MTU];
@@ -127,7 +127,6 @@ private:
     can_status_t _status;
     ts_mode_t _ts_mode;
 
-    const char *cname();
     bool updateStatus();
     bool parseMessage(CanMessage &msg);
 

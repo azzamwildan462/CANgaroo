@@ -39,13 +39,14 @@
 SLCANInterface::SLCANInterface(SLCANDriver *driver, int index, QString name, bool fd_support)
   : CanInterface((CanDriver *)driver),
 	_idx(index),
-    _name(name),
     _isOpen(false),
-    _ts_mode(ts_mode_SIOCSHWTSTAMP),
-    _serport(new QSerialPort()),
+    _serport(NULL),
+    _msg_queue(),
+    _name(name),
+    _rx_linbuf_ctr(0),
     _rxbuf_head(0),
     _rxbuf_tail(0),
-    _rx_linbuf_ctr(0)
+    _ts_mode(ts_mode_SIOCSHWTSTAMP)
 {
     // Set defaults
     _settings.setBitrate(500000);
@@ -105,17 +106,17 @@ void SLCANInterface::applyConfig(const MeasurementInterface &mi)
 
 bool SLCANInterface::updateStatus()
 {
-
+    return false;
 }
 
 bool SLCANInterface::readConfig()
 {
-
+    return false;
 }
 
 bool SLCANInterface::readConfigFromLink(rtnl_link *link)
 {
-
+    return false;
 }
 
 bool SLCANInterface::supportsTimingConfiguration()
@@ -133,12 +134,9 @@ bool SLCANInterface::supportsTripleSampling()
     return false;
 }
 
-unsigned SLCANInterface::getBitrate() {
-//    if (readConfig()) {
-//        return _config.bit_timing.bitrate;
-//    } else {
-//        return 0;
-//    }
+unsigned SLCANInterface::getBitrate()
+{
+    return _settings.bitrate();
 }
 
 uint32_t SLCANInterface::getCapabilities()
@@ -166,15 +164,10 @@ bool SLCANInterface::updateStatistics()
 
 uint32_t SLCANInterface::getState()
 {
-    /*
-    switch (_status.can_state) {
-        case CAN_STATE_ERROR_ACTIVE: return state_ok;
-        case CAN_STATE_ERROR_WARNING: return state_warning;
-        case CAN_STATE_ERROR_PASSIVE: return state_passive;
-        case CAN_STATE_BUS_OFF: return state_bus_off;
-        case CAN_STATE_STOPPED: return state_stopped;
-        default: return state_unknown;
-    }*/
+    if(_isOpen)
+        return state_ok;
+    else
+        return state_bus_off;
 }
 
 int SLCANInterface::getNumRxFrames()
@@ -211,13 +204,15 @@ int SLCANInterface::getIfIndex() {
     return _idx;
 }
 
-const char *SLCANInterface::cname()
-{
-    return _name.toStdString().c_str();
-}
-
 void SLCANInterface::open()
 {
+    if(_serport != NULL)
+    {
+        delete _serport;
+    }
+
+    _serport = new QSerialPort();
+
     _serport_mutex.lock();
     _serport->setPortName(_name);
     _serport->setBaudRate(1000000);
@@ -236,31 +231,6 @@ void SLCANInterface::open()
     }
     _serport->flush();
     _serport->clear();
-
-    QObject::connect(_serport, &QSerialPort::readyRead, [&]
-    {
-        // This is called when readyRead() is emitted
-        QByteArray datas = _serport->readAll();
-        _rxbuf_mutex.lock();
-        for(int i=0; i<datas.count(); i++)
-        {
-            // If incrementing the head will hit the tail, we've filled the buffer. Reset and discard all data.
-            if(((_rxbuf_head + 1) % RXCIRBUF_LEN) == _rxbuf_tail)
-            {
-                _rxbuf_head = 0;
-                _rxbuf_tail = 0;
-            }
-            else
-            {
-                // Put inbound data at the head locatoin
-                _rxbuf[_rxbuf_head] = datas.at(i);
-                _rxbuf_head = (_rxbuf_head + 1) % RXCIRBUF_LEN; // Wrap at MTU
-            }
-        }
-        _rxbuf_mutex.unlock();
-
-    });
-
 
     // Set the classic CAN bitrate
     switch(_settings.bitrate())
@@ -312,6 +282,10 @@ void SLCANInterface::open()
             break;
     }
 
+    _serport->waitForBytesWritten(300);
+
+
+
     // Set configured BRS rate
     if(_config.supports_canfd)
     {
@@ -328,8 +302,11 @@ void SLCANInterface::open()
         }
     }
 
+    _serport->waitForBytesWritten(300);
+
+
     // Open the port
-    _serport->write("O\r", 2);
+    _serport->write("O\r\n", 3);
     _serport->flush();
 
     _isOpen = true;
@@ -345,10 +322,9 @@ void SLCANInterface::close()
     if (_serport->isOpen())
     {
         // Close CAN port
-        _serport->write("C\r", 2);
+        _serport->write("C\r", 2);        
         _serport->flush();
-
-        _serport->flush();
+        _serport->waitForBytesWritten(300);
         _serport->clear();
         _serport->close();
     }
@@ -364,8 +340,8 @@ bool SLCANInterface::isOpen()
 
 void SLCANInterface::sendMessage(const CanMessage &msg) {
 
-    // SLCAN_MTU
-    char buf[SLCAN_MTU] = {0};
+    // SLCAN_MTU plus null terminator
+    char buf[SLCAN_MTU+1] = {0};
 
     uint8_t msg_idx = 0;
 
@@ -479,17 +455,62 @@ void SLCANInterface::sendMessage(const CanMessage &msg) {
     // Add CR for slcan EOL
     buf[msg_idx++] = '\r';
 
-    _serport_mutex.lock();
-    // Write string to serial device
-    _serport->write(buf, msg_idx);
-    _serport->flush();
-    _serport_mutex.unlock();
+    // Ensure null termination
+    buf[msg_idx] = '\0';
+
+    _msg_queue.append(QString(buf));
+
 }
 
 bool SLCANInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
 {
     // Don't saturate the thread. Read the buffer every 1ms.
     QThread().msleep(1);
+
+    // Transmit all items that are queued
+    while(!_msg_queue.empty())
+    {
+        // Consume first item
+        QString tmp = _msg_queue.front();
+        _msg_queue.pop_front();
+
+        _serport_mutex.lock();
+        // Write string to serial device
+        _serport->write(tmp.toStdString().c_str(), tmp.length());
+        _serport->flush();
+        _serport->waitForBytesWritten(300);
+        _serport_mutex.unlock();
+    }
+
+    // RX doesn't work on windows unless we call this for some reason
+    _serport->waitForReadyRead(1);
+
+    if(_serport->bytesAvailable())
+    {
+        // This is called when readyRead() is emitted
+        QByteArray datas = _serport->readAll();
+        _rxbuf_mutex.lock();
+        for(int i=0; i<datas.count(); i++)
+        {
+            // If incrementing the head will hit the tail, we've filled the buffer. Reset and discard all data.
+            if(((_rxbuf_head + 1) % RXCIRBUF_LEN) == _rxbuf_tail)
+            {
+                _rxbuf_head = 0;
+                _rxbuf_tail = 0;
+            }
+            else
+            {
+                // Put inbound data at the head locatoin
+                _rxbuf[_rxbuf_head] = datas.at(i);
+                _rxbuf_head = (_rxbuf_head + 1) % RXCIRBUF_LEN; // Wrap at MTU
+            }
+        }
+        _rxbuf_mutex.unlock();
+    }
+
+
+
+    //////////////////////////
 
     bool ret = false;
     _rxbuf_mutex.lock();

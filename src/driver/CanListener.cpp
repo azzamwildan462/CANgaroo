@@ -77,7 +77,7 @@ void CanListener::startThread()
 
     // Wait for interface to be open before returning so that beginMeasurement is emitted after interface open
     while(!_openComplete)
-        QThread().usleep(250);
+      QThread().usleep(250);
 }
 
 void CanListener::requestStop()
