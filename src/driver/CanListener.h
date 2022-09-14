@@ -54,6 +54,7 @@ private:
     Backend &_backend;
     CanInterface &_intf;
     bool _shouldBeRunning;
+    bool _openComplete;
     QThread *_thread;
 
 };

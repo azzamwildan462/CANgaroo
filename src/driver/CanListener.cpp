@@ -32,7 +32,8 @@ CanListener::CanListener(QObject *parent, Backend &backend, CanInterface &intf)
   : QObject(parent),
     _backend(backend),
     _intf(intf),
-    _shouldBeRunning(true)
+    _shouldBeRunning(true),
+    _openComplete(false)
 {
     _thread = new QThread();
 }
@@ -58,6 +59,7 @@ void CanListener::run()
     CanMessage msg;
     CanTrace *trace = _backend.getTrace();
     _intf.open();
+    _openComplete = true;
     while (_shouldBeRunning) {
         if (_intf.readMessage(msg, 1000)) {
             trace->enqueueMessage(msg, false);
@@ -72,6 +74,10 @@ void CanListener::startThread()
     moveToThread(_thread);
     connect(_thread, SIGNAL(started()), this, SLOT(run()));
     _thread->start();
+
+    // Wait for interface to be open before returning so that beginMeasurement is emitted after interface open
+    while(!_openComplete)
+        QThread().usleep(250);
 }
 
 void CanListener::requestStop()
