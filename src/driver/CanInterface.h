@@ -70,7 +70,7 @@ public:
     virtual bool isOpen();
 
     virtual void sendMessage(const CanMessage &msg) = 0;
-    virtual bool readMessage(CanMessage &msg, unsigned int timeout_ms) = 0;
+    virtual bool readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms) = 0;
 
     virtual bool updateStatistics();
     virtual uint32_t getState() = 0;

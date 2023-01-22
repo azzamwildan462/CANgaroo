@@ -56,13 +56,18 @@ CanInterface &CanListener::getInterface()
 void CanListener::run()
 {
     // Note: open and close done from run() so all operations take place in the same thread
-    CanMessage msg;
+    //CanMessage msg;
+    QList<CanMessage> rxMessages;
     CanTrace *trace = _backend.getTrace();
     _intf.open();
     _openComplete = true;
     while (_shouldBeRunning) {
-        if (_intf.readMessage(msg, 1000)) {
-            trace->enqueueMessage(msg, false);
+        if (_intf.readMessage(rxMessages, 1000)) {
+            for(CanMessage msg: rxMessages)
+            {
+                trace->enqueueMessage(msg, false);
+            }
+            rxMessages.clear();
         }
     }
     _intf.close();

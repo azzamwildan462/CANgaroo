@@ -297,9 +297,10 @@ void CandleApiInterface::sendMessage(const CanMessage &msg)
     }
 }
 
-bool CandleApiInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
+bool CandleApiInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms)
 {
     candle_frame_t frame;
+    CanMessage msg;
 
     if (candle_frame_read(_handle, &frame, timeout_ms)) {
 
@@ -328,7 +329,7 @@ bool CandleApiInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
             }
 
             msg.setTimestamp(ts_us/1000000, ts_us % 1000000);
-
+            msglist.append(msg);
             return true;
         }
 

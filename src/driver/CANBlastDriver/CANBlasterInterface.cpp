@@ -235,7 +235,7 @@ void CANBlasterInterface::sendMessage(const CanMessage &msg) {
 
 }
 
-bool CANBlasterInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
+bool CANBlasterInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms)
 {
     // Don't saturate the thread
     QThread().usleep(250);
@@ -285,6 +285,7 @@ bool CANBlasterInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
             // Set timestamp to current time
             struct timeval tv;
             gettimeofday(&tv,NULL);
+            CanMessage msg;
             msg.setTimestamp(tv);
 
             msg.setInterfaceId(getId());
@@ -295,12 +296,11 @@ bool CANBlasterInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
             msg.setRTR(frame.can_id & CAN_RTR_FLAG);
             msg.setLength(frame.len);
 
-
             for(int i=0; i<frame.len && i<CAN_MAX_DLEN; i++)
             {
                 msg.setDataAt(i, frame.data[i]);
             }
-
+            msglist.append(msg);
             return true;
         }
         else

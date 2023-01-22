@@ -76,7 +76,7 @@ public:
 	virtual void close();
 
     virtual void sendMessage(const CanMessage &msg);
-    virtual bool readMessage(CanMessage &msg, unsigned int timeout_ms);
+    virtual bool readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms);
 
     virtual bool updateStatistics();
     virtual uint32_t getState();

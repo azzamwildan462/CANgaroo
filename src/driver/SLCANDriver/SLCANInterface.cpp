@@ -462,7 +462,7 @@ void SLCANInterface::sendMessage(const CanMessage &msg) {
 
 }
 
-bool SLCANInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
+bool SLCANInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms)
 {
     // Don't saturate the thread. Read the buffer every 1ms.
     QThread().msleep(1);
@@ -524,7 +524,9 @@ bool SLCANInterface::readMessage(CanMessage &msg, unsigned int timeout_ms)
             // If we have a newline, then we just finished parsing a CAN message.
             if(_rxbuf[_rxbuf_tail] == '\r')
             {
+                CanMessage msg;
                 ret = parseMessage(msg);
+                msglist.append(msg);
                 _rx_linbuf_ctr = 0;
             }
         }
@@ -692,10 +694,14 @@ bool SLCANInterface::parseMessage(CanMessage &msg)
     // Calculate number of bytes we expect in the message
     int8_t bytes_in_msg = dlc_code_raw;
 
-    if(bytes_in_msg < 0)
+    if(bytes_in_msg < 0) {
+        perror("Invalid length < 0");
         return false;
-    if(bytes_in_msg > 64)
+    }
+    if(bytes_in_msg > 64) {
+        perror("Invalid length > 64");
         return false;
+    }
 
     // Parse data
     // TODO: Guard against walking off the end of the string!
