@@ -408,7 +408,7 @@ void SocketCanInterface::sendMessage(const CanMessage &msg) {
 	::write(_fd, &frame, sizeof(struct can_frame));
 }
 
-bool SocketCanInterface::readMessage(CanMessage &msg, unsigned int timeout_ms) {
+bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms) {
 
     struct can_frame frame;
     struct timespec ts_rcv;
@@ -423,6 +423,7 @@ bool SocketCanInterface::readMessage(CanMessage &msg, unsigned int timeout_ms) {
     FD_ZERO(&fdset);
     FD_SET(_fd, &fdset);
 
+    CanMessage msg;
 
     int rv = select(_fd+1, &fdset, NULL, NULL, &timeout);
     if (rv>0) {
@@ -463,6 +464,7 @@ bool SocketCanInterface::readMessage(CanMessage &msg, unsigned int timeout_ms) {
             msg.setByte(i, frame.data[i]);
         }
 
+	msglist.append(msg);
         return true;
     } else {
         return false;
