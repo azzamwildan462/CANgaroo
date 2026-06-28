@@ -101,6 +101,7 @@ private:
     int _idx;
     bool _isOpen;
 	int _fd;
+    bool _canfd_on;
     QString _name;
 
     can_config_t _config;

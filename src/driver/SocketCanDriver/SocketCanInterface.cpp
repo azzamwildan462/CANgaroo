@@ -26,6 +26,7 @@
 #include <core/CanMessage.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
 #include <QString>
@@ -50,6 +51,7 @@ SocketCanInterface::SocketCanInterface(SocketCanDriver *driver, int index, QStri
 	_idx(index),
     _isOpen(false),
 	_fd(0),
+    _canfd_on(false),
     _name(name),
     _ts_mode(ts_mode_SIOCSHWTSTAMP)
 {
@@ -349,10 +351,20 @@ const char *SocketCanInterface::cname()
 }
 
 void SocketCanInterface::open() {
+    _canfd_on = false;
+
 	if((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
 		perror("Error while opening socket");
         _isOpen = false;
 	}
+
+    // Enable reception/transmission of CAN-FD frames. Harmless (just ignored)
+    // on classic-only interfaces; required for the kernel to deliver/accept
+    // canfd_frame on FD-capable interfaces.
+    int enable_canfd = 1;
+    if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &enable_canfd, sizeof(enable_canfd)) == 0) {
+        _canfd_on = true;
+    }
 
 	struct ifreq ifr;
     struct sockaddr_can addr;
@@ -381,6 +393,34 @@ void SocketCanInterface::close() {
 }
 
 void SocketCanInterface::sendMessage(const CanMessage &msg) {
+
+	if (msg.isFD() && _canfd_on) {
+		struct canfd_frame frame;
+		memset(&frame, 0, sizeof(frame));
+
+		frame.can_id = msg.getId();
+
+		// CAN-FD has no remote frames, so no CAN_RTR_FLAG here.
+		if (msg.isExtended()) {
+			frame.can_id |= CAN_EFF_FLAG;
+		}
+		if (msg.isErrorFrame()) {
+			frame.can_id |= CAN_ERR_FLAG;
+		}
+
+		uint8_t len = msg.getLength();
+		if (len>64) { len = 64; }
+
+		frame.len = len;
+		frame.flags = msg.isBRS() ? CANFD_BRS : 0;
+		for (int i=0; i<len; i++) {
+			frame.data[i] = msg.getByte(i);
+		}
+
+		::write(_fd, &frame, sizeof(struct canfd_frame));
+		return;
+	}
+
 	struct can_frame frame;
 
 	frame.can_id = msg.getId();
@@ -410,7 +450,7 @@ void SocketCanInterface::sendMessage(const CanMessage &msg) {
 
 bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int timeout_ms) {
 
-    struct can_frame frame;
+    struct canfd_frame frame;
     struct timespec ts_rcv;
     struct timeval tv_rcv;
     struct timeval timeout;
@@ -428,9 +468,11 @@ bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
     int rv = select(_fd+1, &fdset, NULL, NULL, &timeout);
     if (rv>0) {
 
-        if (read(_fd, &frame, sizeof(struct can_frame)) < 0) {
+        int nbytes = read(_fd, &frame, sizeof(struct canfd_frame));
+        if (nbytes < (int)CAN_MTU) {
             return false;
         }
+        bool isFD = (nbytes == (int)CANFD_MTU);
 
         if (_ts_mode == ts_mode_SIOCSHWTSTAMP) {
             // TODO implement me
@@ -452,12 +494,15 @@ bool SocketCanInterface::readMessage(QList<CanMessage> &msglist, unsigned int ti
 
         msg.setId(frame.can_id);
         msg.setExtended((frame.can_id & CAN_EFF_FLAG)!=0);
-        msg.setRTR((frame.can_id & CAN_RTR_FLAG)!=0);
+        msg.setRTR(!isFD && ((frame.can_id & CAN_RTR_FLAG)!=0));
         msg.setErrorFrame((frame.can_id & CAN_ERR_FLAG)!=0);
+        msg.setFD(isFD);
+        msg.setBRS(isFD && ((frame.flags & CANFD_BRS)!=0));
         msg.setInterfaceId(getId());
 
-        uint8_t len = frame.can_dlc;
-        if (len>8) { len = 8; }
+        uint8_t len = frame.len;
+        uint8_t maxlen = isFD ? 64 : 8;
+        if (len>maxlen) { len = maxlen; }
 
         msg.setLength(len);
         for (int i=0; i<len; i++) {
