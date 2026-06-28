@@ -59,6 +59,10 @@ public:
 
     virtual void applyConfig(const MeasurementInterface &mi) = 0;
 
+    // Interfaces that connect to a network host (e.g. an Ethernet-to-CAN
+    // gateway) return true so the setup page exposes IP/port fields.
+    virtual bool needsHostConfig() const;
+
     virtual unsigned getBitrate() = 0;
 
     virtual uint32_t getCapabilities();

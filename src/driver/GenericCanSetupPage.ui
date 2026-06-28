@@ -243,6 +243,74 @@
     </item>
    </layout>
   </widget>
+  <widget class="QGroupBox" name="gbGateway">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>360</y>
+     <width>411</width>
+     <height>90</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Gateway (Ethernet-to-CAN)</string>
+   </property>
+   <widget class="QLabel" name="laHost">
+    <property name="geometry">
+     <rect>
+      <x>12</x>
+      <y>30</y>
+      <width>90</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>IP address:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="edHost">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>28</y>
+      <width>170</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="laPort">
+    <property name="geometry">
+     <rect>
+      <x>12</x>
+      <y>58</y>
+      <width>90</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>TCP port:</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="edPort">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>56</y>
+      <width>170</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <number>65535</number>
+    </property>
+    <property name="value">
+     <number>8882</number>
+    </property>
+   </widget>
+  </widget>
  </widget>
  <resources/>
  <connections/>

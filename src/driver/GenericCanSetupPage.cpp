@@ -19,6 +19,9 @@ GenericCanSetupPage::GenericCanSetupPage(QWidget *parent) :
     connect(ui->cbBitrateFD, SIGNAL(currentIndexChanged(int)), this, SLOT(updateUI()));
     connect(ui->cbSamplePointFD, SIGNAL(currentIndexChanged(int)), this, SLOT(updateUI()));
 
+    connect(ui->edHost, SIGNAL(textChanged(QString)), this, SLOT(updateUI()));
+    connect(ui->edPort, SIGNAL(valueChanged(int)), this, SLOT(updateUI()));
+
     connect(ui->cbConfigOS, SIGNAL(stateChanged(int)), this, SLOT(updateUI()));
     connect(ui->cbListenOnly, SIGNAL(stateChanged(int)), this, SLOT(updateUI()));
     connect(ui->cbOneShot, SIGNAL(stateChanged(int)), this, SLOT(updateUI()));
@@ -47,6 +50,13 @@ void GenericCanSetupPage::onShowInterfacePage(SetupDialog &dlg, MeasurementInter
     ui->laDriver->setText(intf->getDriver()->getName());
     ui->laInterface->setText(intf->getName());
     ui->laInterfaceDetails->setText(intf->getDetailsStr());
+
+    bool needsHost = intf->needsHostConfig();
+    ui->gbGateway->setVisible(needsHost);
+    if (needsHost) {
+        ui->edHost->setText(_mi->host());
+        ui->edPort->setValue(_mi->port());
+    }
 
     fillBitratesList(intf, _mi->bitrate());
     fillFdBitrate(intf, _mi->bitrate());
@@ -77,6 +87,11 @@ void GenericCanSetupPage::updateUI()
         _mi->setAutoRestart(ui->cbAutoRestart->isChecked());
         _mi->setBitrate(ui->cbBitrate->currentData().toUInt());
         _mi->setSamplePoint(ui->cbSamplePoint->currentData().toUInt());
+
+        if (intf->needsHostConfig()) {
+            _mi->setHost(ui->edHost->text());
+            _mi->setPort((unsigned)ui->edPort->value());
+        }
 
         _enable_ui_updates = false;
 

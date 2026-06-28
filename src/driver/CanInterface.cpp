@@ -40,6 +40,11 @@ QString CanInterface::getDetailsStr() const
     return "";
 }
 
+bool CanInterface::needsHostConfig() const
+{
+    return false;
+}
+
 uint32_t CanInterface::getCapabilities()
 {
     return 0;

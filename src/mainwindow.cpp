@@ -39,6 +39,7 @@
 
 #include <driver/SLCANDriver/SLCANDriver.h>
 #include <driver/CANBlastDriver/CANBlasterDriver.h>
+#include <driver/EcanDriver/EcanDriver.h>
 
 #if defined(__linux__)
 #include <driver/SocketCanDriver/SocketCanDriver.h>
@@ -81,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
     Backend::instance().addCanDriver(*(new SLCANDriver(Backend::instance())));
     Backend::instance().addCanDriver(*(new CANBlasterDriver(Backend::instance())));
+    Backend::instance().addCanDriver(*(new EcanDriver(Backend::instance())));
 
     setWorkspaceModified(false);
     newWorkspace();

@@ -38,7 +38,9 @@ MeasurementInterface::MeasurementInterface()
     _isOneShotMode(false),
     _isTripleSampling(false),
     _doAutoRestart(false),
-    _autoRestartMs(100)
+    _autoRestartMs(100),
+    _host("192.168.9.20"),
+    _port(8882)
 {
 
 }
@@ -60,6 +62,9 @@ bool MeasurementInterface::loadXML(Backend &backend, QDomElement &el)
     _isTripleSampling = el.attribute("triple-sampling", "0").toInt() != 0;
     _doAutoRestart = el.attribute("auto-restart", "0").toInt() != 0;
     _autoRestartMs = el.attribute("auto-restart-time", "100").toInt();
+
+    _host = el.attribute("host", "192.168.9.20");
+    _port = el.attribute("port", "8882").toUInt();
 
     return true;
 }
@@ -85,6 +90,9 @@ bool MeasurementInterface::saveXML(Backend &backend, QDomDocument &xml, QDomElem
     root.setAttribute("triple-sampling", _isTripleSampling ? 1 : 0);
     root.setAttribute("auto-restart", _doAutoRestart ? 1 : 0);
     root.setAttribute("auto-restart-time", _autoRestartMs);
+
+    root.setAttribute("host", _host);
+    root.setAttribute("port", _port);
 
     return true;
 }
@@ -212,4 +220,24 @@ int MeasurementInterface::autoRestartMs() const
 void MeasurementInterface::setAutoRestartMs(int autoRestartMs)
 {
     _autoRestartMs = autoRestartMs;
+}
+
+QString MeasurementInterface::host() const
+{
+    return _host;
+}
+
+void MeasurementInterface::setHost(const QString &host)
+{
+    _host = host;
+}
+
+unsigned MeasurementInterface::port() const
+{
+    return _port;
+}
+
+void MeasurementInterface::setPort(unsigned port)
+{
+    _port = port;
 }

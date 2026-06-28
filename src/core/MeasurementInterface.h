@@ -72,6 +72,12 @@ public:
     int autoRestartMs() const;
     void setAutoRestartMs(int autoRestartMs);
 
+    QString host() const;
+    void setHost(const QString &host);
+
+    unsigned port() const;
+    void setPort(unsigned port);
+
 private:
     CanInterfaceId _canif;
 
@@ -89,4 +95,7 @@ private:
     bool _isTripleSampling;
     bool _doAutoRestart;
     int _autoRestartMs;
+
+    QString _host;
+    unsigned _port;
 };
