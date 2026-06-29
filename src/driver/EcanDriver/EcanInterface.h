@@ -32,11 +32,11 @@ class QTcpSocket;
 
 class EcanInterface: public CanInterface {
 public:
-    EcanInterface(EcanDriver *driver, int index, QString name);
+    EcanInterface(EcanDriver *driver, int index, QString host, quint16 port);
     virtual ~EcanInterface();
 
     virtual QString getName() const;
-    void setName(QString name);
+    void setEndpoint(QString host, quint16 port);
     virtual QString getDetailsStr() const;
 
     virtual bool needsHostConfig() const;

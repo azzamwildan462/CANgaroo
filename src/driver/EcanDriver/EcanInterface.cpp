@@ -39,13 +39,13 @@
 #define ECAN_INFO_EXT   0x80
 #define ECAN_INFO_RTR   0x40
 
-EcanInterface::EcanInterface(EcanDriver *driver, int index, QString name)
+EcanInterface::EcanInterface(EcanDriver *driver, int index, QString host, quint16 port)
   : CanInterface((CanDriver *)driver),
     _idx(index),
     _isOpen(false),
-    _name(name),
-    _host("192.168.9.20"),
-    _port(8882),
+    _name(QString("%1:%2").arg(host).arg(port)),
+    _host(host),
+    _port(port),
     _socket(NULL),
     _rx_count(0),
     _tx_count(0),
@@ -67,8 +67,10 @@ QString EcanInterface::getName() const {
     return _name;
 }
 
-void EcanInterface::setName(QString name) {
-    _name = name;
+void EcanInterface::setEndpoint(QString host, quint16 port) {
+    _host = host;
+    _port = port;
+    _name = QString("%1:%2").arg(host).arg(port);
 }
 
 QString EcanInterface::getDetailsStr() const {

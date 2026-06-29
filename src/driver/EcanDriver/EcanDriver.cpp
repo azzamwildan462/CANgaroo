@@ -24,9 +24,19 @@
 #include <core/Backend.h>
 #include <driver/GenericCanSetupPage.h>
 
-// Number of selectable ECAN gateway slots. Each slot carries its own IP/port
-// via its MeasurementInterface, so bump this to talk to more gateways at once.
-#define ECAN_NUM_INTERFACES 2
+#include <QtNetwork/QTcpSocket>
+
+// The Ebyte ECAN-E01 gateway cannot be auto-discovered, so we probe a list of
+// known addresses with a short TCP connect. An interface only appears when its
+// gateway actually responds -- mirroring how SocketCAN/SLCAN only list devices
+// that are present. Add your gateway address(es) here.
+static const struct { const char *host; quint16 port; } ECAN_CANDIDATES[] = {
+    { "192.168.9.20", 8882 },
+};
+
+// How long to wait for the probe TCP connect (ms). Kept short so it does not
+// stall the UI when no gateway is present.
+#define ECAN_PROBE_TIMEOUT_MS 300
 
 EcanDriver::EcanDriver(Backend &backend)
   : CanDriver(backend),
@@ -41,8 +51,17 @@ EcanDriver::~EcanDriver() {
 bool EcanDriver::update() {
     deleteAllInterfaces();
 
-    for (int i=0; i<ECAN_NUM_INTERFACES; i++) {
-        createOrUpdateInterface(i, QString("ECAN Gateway %1").arg(i+1));
+    int idx = 0;
+    for (unsigned c=0; c<sizeof(ECAN_CANDIDATES)/sizeof(ECAN_CANDIDATES[0]); c++) {
+        QString host = ECAN_CANDIDATES[c].host;
+        quint16 port = ECAN_CANDIDATES[c].port;
+
+        QTcpSocket probe;
+        probe.connectToHost(host, port);
+        if (probe.waitForConnected(ECAN_PROBE_TIMEOUT_MS)) {
+            probe.abort();
+            createOrUpdateInterface(idx++, host, port);
+        }
     }
 
     return true;
@@ -52,16 +71,16 @@ QString EcanDriver::getName() {
     return "Ebyte ECAN";
 }
 
-EcanInterface *EcanDriver::createOrUpdateInterface(int index, QString name) {
+EcanInterface *EcanDriver::createOrUpdateInterface(int index, QString host, quint16 port) {
     foreach (CanInterface *intf, getInterfaces()) {
         EcanInterface *ecif = dynamic_cast<EcanInterface*>(intf);
         if (ecif && ecif->getIfIndex() == index) {
-            ecif->setName(name);
+            ecif->setEndpoint(host, port);
             return ecif;
         }
     }
 
-    EcanInterface *ecif = new EcanInterface(this, index, name);
+    EcanInterface *ecif = new EcanInterface(this, index, host, port);
     addInterface(ecif);
     return ecif;
 }

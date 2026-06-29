@@ -41,6 +41,6 @@ public:
     virtual bool update();
 
 private:
-    EcanInterface *createOrUpdateInterface(int index, QString name);
+    EcanInterface *createOrUpdateInterface(int index, QString host, quint16 port);
     GenericCanSetupPage *setupPage;
 };
